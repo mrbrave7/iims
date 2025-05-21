@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@keyframes toast-enter {
+    from {
+        transform: translateY(100%) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes toast-exit {
+    from {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-20%) scale(0.95);
+        opacity: 0;
+    }
+}
+
+.animate-toast-enter {
+    animation: toast-enter 300ms ease-out forwards;
+}
+
+.animate-toast-exit {
+    animation: toast-exit 300ms ease-in forwards;
+}
+;

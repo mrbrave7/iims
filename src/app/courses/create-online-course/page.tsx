@@ -320,7 +320,7 @@ export default function Page(): React.ReactElement {
     "BasicDetails",
     "PricingAndOffer",
     "SEOAndMarketing",
-    "AdditionalInformation",
+    "Additional Information",
     "ContentModule",
   ];
 
@@ -1291,7 +1291,7 @@ export default function Page(): React.ReactElement {
           onRemoveTag={handleRemoveTag}
         />
       ),
-      AdditionalInformation: (
+      "Additional Information": (
         <AdditionalFeaturesTab
           additionalFeatures={additionalFeatures}
           additionalFeaturesErrors={additionalFeaturesErrors}

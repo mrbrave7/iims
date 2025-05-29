@@ -231,13 +231,13 @@ const SEOAndMarketingTab: React.FC<SEOAndMarketingTabProps> = ({
                 {seoAndMarketingData.tags.map((tag, index) => (
                   <li
                     key={index}
-                    className="flex items-center gap-2 border border-orange-600 px-3 py-1 text-orange-600 rounded-full bg-stone-100 dark:bg-stone-800"
+                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-100/50 dark:bg-stone-800/50"
                   >
                     <span>{tag}</span>
                     <button
                       type="button"
                       onClick={() => onRemoveTag(index)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-orange-600 hover:text-orange-800 cursor-pointer"
                       aria-label={`Remove tag ${tag}`}
                     >
                       <PiTrash />

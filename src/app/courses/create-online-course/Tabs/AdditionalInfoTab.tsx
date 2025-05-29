@@ -174,10 +174,10 @@ export function AdditionalFeaturesTab({
                         <button
                             type="button"
                             onClick={handleAddTargetAudience}
-                            className="flex rounded items-center gap-2 px-4 font-bold py-2 bg-orange-600 text-stone-100 hover:bg-orange-700 transition-colors"
+                            className="flex rounded items-center gap-2 font-bold px-4 text-stone-100 dark:text-stone-900 bg-orange-600 text-stone-100 hover:bg-orange-700 transition-colors"
                             disabled={!singleTargetAudience.trim()}
                         >
-                            <PiPlus /> Add
+                            <PiPlus />
                         </button>
                     </div>
                     {additionalFeaturesErrors.targetedAudience && (
@@ -196,13 +196,13 @@ export function AdditionalFeaturesTab({
                                 {additionalFeatures.targetAudience.map((audience, index) => (
                                     <li
                                         key={index}
-                                        className="w-full text-orange-600 rounded flex items-center justify-between bg-stone-100/50 p-2 shadow-sm shadow-stone-500"
+                                        className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-100/50 dark:bg-stone-800/50 w-fit"
                                     >
                                         <span>{audience}</span>
                                         <button
                                             type="button"
                                             onClick={() => onRemoveTargetAudience(index)}
-                                            className="text-red-600 hover:text-red-800 transition-colors"
+                                            className="text-orange-600 hover:text-orange-800 cursor-pointer transition-colors"
                                             aria-label={`Remove ${audience}`}
                                         >
                                             <PiTrash />

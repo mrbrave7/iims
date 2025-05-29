@@ -457,7 +457,7 @@ const BasicInfoTab: React.FC<DetailsTabProps> = ({
                 {details.syllabusOutline.map((item, index) => (
                   <li
                     key={index}
-                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-200/50"
+                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-100/50 dark:bg-stone-800/50"
                   >
                     <span>{item}</span>
                     <button
@@ -538,7 +538,7 @@ const BasicInfoTab: React.FC<DetailsTabProps> = ({
                 {details.courseGoals.map((goal, index) => (
                   <li
                     key={index}
-                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-200/50"
+                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-100/50 dark:bg-stone-800/50"
                   >
                     <span>{goal}</span>
                     <button
@@ -619,7 +619,7 @@ const BasicInfoTab: React.FC<DetailsTabProps> = ({
                 {details.preRequisites.map((prerequisite, index) => (
                   <li
                     key={index}
-                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-200/50"
+                    className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-100/50 dark:bg-stone-800/50"
                   >
                     <span>{prerequisite}</span>
                     <button

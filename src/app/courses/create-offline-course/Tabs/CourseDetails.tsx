@@ -318,7 +318,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                         {details.syllabusOutline.map((syllabusOutline, index) => (
                             <span
                                 key={index}
-                                className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-100/50 dark:bg-stone-800"
+                                className="flex gap-2 px-3 py-1 text-orange-600 rounded font-bold bg-stone-500/50 dark:bg-stone-800"
                             >
                                 <p>{syllabusOutline}</p>
                                 <button

@@ -6,7 +6,7 @@ import SEOAndMarketingTab from "./Tabs/SEOAndMarketingTab";
 import { AdditionalFeaturesTab } from "./Tabs/AdditionalInfoTab";
 import { ModuleTab } from "./Tabs/Contents.Tab";
 import { useRouter } from "next/navigation";
-import { worldCurrencies } from "../create-offline-course/page";
+import { worldCurrencies } from "../../offline/create-offline-course/page";
 import Head from "next/head";
 import { useAdminContext } from "@/app/Context/AdminProvider";
 

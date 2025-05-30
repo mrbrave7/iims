@@ -102,7 +102,7 @@ export default function CoursePage(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen py-8 gap-12 flex items-start justify-center bg-gradient-to-br from-orange-200 via-orange-300 to-orange-400 dark:from-stone-800 dark:via-stone-900 dark:to-black">
+    <div className="min-h-screen fixed top-0 w-full py-8 gap-12 flex items-start justify-center bg-gradient-to-br from-orange-200 via-orange-300 to-orange-400 dark:from-stone-800 dark:via-stone-900 dark:to-black">
       <div className="container mx-auto px-4 py-8">
         {/* Header with create buttons */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

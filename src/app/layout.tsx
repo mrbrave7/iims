@@ -16,7 +16,9 @@ export default function RootLayout({
           <AdminProvider>
             <Usermodale />
             <Sidebar />
-            {children}
+            <main className="fixed top-0 left-0 w-screen h-screen">
+              {children}
+            </main>
           </AdminProvider>
         </PopupProvider>
       </body>

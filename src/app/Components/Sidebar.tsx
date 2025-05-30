@@ -310,7 +310,7 @@ export default function Sidebar(): React.ReactElement {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-screen ${
+      className={`fixed left-0 h-screen bg-red-500 ${
         isCollapsed ? "w-20" : "w-64"
       } bg-stone-50 dark:bg-stone-900 border-r border-stone-200 dark:border-stone-700 shadow-sm transition-all duration-300 ease-in-out z-50 flex flex-col md:relative`}
       aria-label="Sidebar navigation"

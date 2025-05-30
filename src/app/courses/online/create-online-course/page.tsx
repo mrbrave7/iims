@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, ReactElement } from "react";
 import BasicInfoTab from "./Tabs/BasicInfoTab";
 import PricingAndOfferTab from "./Tabs/PricingAndOfferTab";
 import SEOAndMarketingTab from "./Tabs/SEOAndMarketingTab";
@@ -1245,7 +1245,7 @@ export default function Page(): React.ReactElement {
   };
 
   // Memoized tab content
-  const tabContent = useMemo(
+  const tabContent:any = useMemo(
     () => ({
       BasicDetails: (
         <BasicInfoTab

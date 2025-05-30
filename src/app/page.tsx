@@ -8,7 +8,7 @@ export default function Home(): React.ReactElement {
   if(!adminId) {
     
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-100 dark:bg-stone-900 transition-colors duration-300">
+      <div className="min-h-screen  flex items-center justify-center bg-red-100 dark:bg-stone-900 transition-colors duration-300">
       <div className="text-center space-y-6">
         {/* Spinner */}
         <div className="relative w-24 h-24 mx-auto">
@@ -40,7 +40,7 @@ export default function Home(): React.ReactElement {
     )
   }
   return (
-    <div className="bg-stone-100 flex items-center justify-center min-h-screen min-w-screen bg-white dark:bg-stone-950">
+    <div className="flex items-center justify-center min-h-screen min-w-screen bg-white dark:bg-red-950 bg-orange-200">
       {/* <Sidebar /> */}
       Hello Admin Panel
       <div className="flex items-center justify-center gap-5">

@@ -4,22 +4,30 @@ import { PiBook, PiCalendar, PiClock, PiListBullets, PiPlus, PiTrash, PiWarning 
 // Interfaces
 interface DetailsErrors {
     courseName: string;
+    courseSlug: string
+    courseDescription: string;
     courseGoals: string;
     courseLevel: string;
-    courseDescription: string;
-    courseDurationInDays: string;
-    courseDailyClassDurationInMinutes: string;
     syllabusOutline: string;
+    preRequisites: string
+    courseDurationInDays: string;
+    courseDurationInHours: string
+    courseClassDurationInMin: string;
+    courseValidityInMonths: string
 }
 
 interface OfflineCourseDetails {
     courseName: string;
+    courseSlug: string;
+    courseDescription: string;
     courseGoals: string[];
     courseLevel: "Beginner" | "Intermediate" | "Advanced" | "Academic";
-    courseDescription: string;
-    courseDurationInDays: number;
-    courseDailyClassDurationInMinutes: number;
     syllabusOutline: string[];
+    preRequisites: string[]
+    courseDurationInDays: number;
+    courseDurationInHours: number
+    courseClassDurationInMin: number;
+    courseValidityInMonths: number
 }
 
 interface DetailsTabProps {
@@ -50,7 +58,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
     onAddCourseGoals,
     onRemoveCourseGoals,
 }) => {
-    const courseLevelOptions = ["Beginner", "Intermediate", "Advanced" , "Academic"];
+    const courseLevelOptions = ["Beginner", "Intermediate", "Advanced", "Academic"];
 
     // Handle input changes
     const handleDetails = useCallback(
@@ -77,6 +85,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
             onAddCourseGoals(trimmed);
         }
     }, [singleCourseGoals, onAddCourseGoals]);
+    // Handle add course goal
 
     // Memoized component
     const DetailsContent = useMemo(
@@ -102,13 +111,52 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                                 required
                                 value={details.courseName}
                                 onChange={(e) => handleDetails("courseName", e.target.value)}
-                                className={`pl-10 outline-none w-full rounded-lg border ${
-                                    detailsErrors.courseName
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.courseName
                                         ? "border-red-500"
                                         : details.courseName
-                                        ? "border-orange-500"
-                                        : "border-stone-300 dark:border-stone-700"
-                                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                placeholder="30 Days Javascript"
+                                maxLength={100}
+                                aria-invalid={!!detailsErrors.courseName}
+                                aria-describedby="courseName-error"
+                                aria-required="true"
+                            />
+                        </div>
+                        <div aria-live="polite">
+                            {detailsErrors.courseName && (
+                                <p
+                                    id="courseName-error"
+                                    className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                                >
+                                    <PiWarning size={16} /> {detailsErrors.courseName}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    {/* Course Slug */}
+                    <div className="space-y-1">
+                        <label htmlFor="courseSlug" className="text-orange-600 font-bold">
+                            Course Slug
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <PiBook className="h-5 w-5 text-stone-400" />
+                            </div>
+                            <input
+                                id="courseSlug"
+                                name="courseSlug"
+                                type="text"
+                                required
+                                value={details.courseName}
+                                onChange={(e) => handleDetails("courseName", e.target.value)}
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.courseName
+                                        ? "border-red-500"
+                                        : details.courseName
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                                 placeholder="30 Days Javascript"
                                 maxLength={100}
                                 aria-invalid={!!detailsErrors.courseName}
@@ -128,6 +176,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                         </div>
                     </div>
 
+
                     {/* Course Level */}
                     <div className="space-y-1">
                         <label htmlFor="courseLevel" className="text-orange-600 font-bold">
@@ -143,13 +192,12 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                                 required
                                 value={details.courseLevel}
                                 onChange={(e) => handleDetails("courseLevel", e.target.value)}
-                                className={`pl-10 outline-none w-full rounded-lg border ${
-                                    detailsErrors.courseLevel
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.courseLevel
                                         ? "border-red-500"
                                         : details.courseLevel
-                                        ? "border-orange-500"
-                                        : "border-stone-300 dark:border-stone-700"
-                                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                                 aria-invalid={!!detailsErrors.courseLevel}
                                 aria-describedby="courseLevel-error"
                                 aria-required="true"
@@ -194,30 +242,29 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                                 type="number"
                                 required
                                 min="1"
-                                value={details.courseDailyClassDurationInMinutes || ""}
+                                value={details.courseClassDurationInMin || ""}
                                 onChange={(e) =>
-                                    handleDetails("courseDailyClassDurationInMinutes", e.target.value)
+                                    handleDetails("courseClassDurationInMin", e.target.value)
                                 }
-                                className={`pl-10 outline-none w-full rounded-lg border ${
-                                    detailsErrors.courseDailyClassDurationInMinutes
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.courseClassDurationInMin
                                         ? "border-red-500"
-                                        : details.courseDailyClassDurationInMinutes
-                                        ? "border-orange-500"
-                                        : "border-stone-300 dark:border-stone-700"
-                                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                        : details.courseClassDurationInMin
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                                 placeholder="60"
-                                aria-invalid={!!detailsErrors.courseDailyClassDurationInMinutes}
+                                aria-invalid={!!detailsErrors.courseClassDurationInMin}
                                 aria-describedby="dailyDuration-error"
                                 aria-required="true"
                             />
                         </div>
                         <div aria-live="polite">
-                            {detailsErrors.courseDailyClassDurationInMinutes && (
+                            {detailsErrors.courseClassDurationInMin && (
                                 <p
                                     id="dailyDuration-error"
                                     className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
                                 >
-                                    <PiWarning size={16} /> {detailsErrors.courseDailyClassDurationInMinutes}
+                                    <PiWarning size={16} /> {detailsErrors.courseClassDurationInMin}
                                 </p>
                             )}
                         </div>
@@ -240,13 +287,12 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                                 min="1"
                                 value={details.courseDurationInDays || ""}
                                 onChange={(e) => handleDetails("courseDurationInDays", e.target.value)}
-                                className={`pl-10 outline-none w-full rounded-lg border ${
-                                    detailsErrors.courseDurationInDays
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.courseDurationInDays
                                         ? "border-red-500"
                                         : details.courseDurationInDays
-                                        ? "border-orange-500"
-                                        : "border-stone-300 dark:border-stone-700"
-                                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                                 placeholder="30"
                                 aria-invalid={!!detailsErrors.courseDurationInDays}
                                 aria-describedby="duration-error"
@@ -282,13 +328,12 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                                 type="text"
                                 value={singleSyllabusOutline}
                                 onChange={(e) => onSyllabusOutlineChange(e.target.value)}
-                                className={`pl-10 outline-none w-full rounded-lg border ${
-                                    detailsErrors.syllabusOutline
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.syllabusOutline
                                         ? "border-red-500"
                                         : singleSyllabusOutline
-                                        ? "border-orange-500"
-                                        : "border-stone-300 dark:border-stone-700"
-                                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                                 placeholder="Introduction to Statistics"
                                 maxLength={100}
                                 aria-invalid={!!detailsErrors.syllabusOutline}
@@ -350,13 +395,12 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                                 type="text"
                                 value={singleCourseGoals}
                                 onChange={(e) => onCourseGoalsChange(e.target.value)}
-                                className={`pl-10 outline-none w-full rounded-lg border ${
-                                    detailsErrors.courseGoals
+                                className={`pl-10 outline-none w-full rounded-lg border ${detailsErrors.courseGoals
                                         ? "border-red-500"
                                         : singleCourseGoals
-                                        ? "border-orange-500"
-                                        : "border-stone-300 dark:border-stone-700"
-                                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                                            ? "border-orange-500"
+                                            : "border-stone-300 dark:border-stone-700"
+                                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                                 placeholder="Master JavaScript fundamentals"
                                 maxLength={100}
                                 aria-invalid={!!detailsErrors.courseGoals}
@@ -412,13 +456,12 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                         name="courseDescription"
                         value={details.courseDescription}
                         onChange={(e) => handleDetails("courseDescription", e.target.value)}
-                        className={`w-full rounded-lg border ${
-                            detailsErrors.courseDescription
+                        className={`w-full rounded-lg border ${detailsErrors.courseDescription
                                 ? "border-red-500"
                                 : details.courseDescription
-                                ? "border-orange-500"
-                                : "border-stone-300 dark:border-stone-700"
-                        } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent min-h-[100px]`}
+                                    ? "border-orange-500"
+                                    : "border-stone-300 dark:border-stone-700"
+                            } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent min-h-[100px]`}
                         placeholder="Describe the course (e.g., topics covered, teaching methods)"
                         maxLength={3000}
                         aria-invalid={!!detailsErrors.courseDescription}

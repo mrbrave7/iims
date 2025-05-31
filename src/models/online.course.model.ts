@@ -1,9 +1,5 @@
 import mongoose, { Schema, Document, Types, model, Model, Error } from 'mongoose';
 import validator from 'validator';
-import redis from 'redis';
-import util from 'util';
-import { redisClient } from '@/lib/redis';
-import { Type } from '@upstash/redis';
 
 // Custom Error Classes
 class ValidationError extends Error {

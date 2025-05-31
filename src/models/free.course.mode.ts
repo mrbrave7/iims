@@ -18,7 +18,7 @@ class DatabaseError extends Error {
 }
 
 // Modular Interfaces
-interface ICoreCourse {
+ interface ICoreCourse {
     courseName: string;
     courseSlug: string;
     courseDescription: string;

@@ -65,7 +65,7 @@ interface IPaymentPlan {
     duration: string;
 }
 
-interface ICoreDetails {
+interface ICoreDetails { // tab is created
     courseName: string;
     courseSlug: string;
     courseDescription: string;
@@ -79,7 +79,7 @@ interface ICoreDetails {
     courseValidityInMonths?: number;
 }
 
-interface ICourseMetadata {
+interface ICourseMetadata { // tab is created
     courseType: CourseType;
     courseCategories?: string[];
     courseSubCategories?: string[];

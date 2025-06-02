@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   PiCalendar,
   PiCashRegister,
@@ -15,6 +15,9 @@ import {
 import { CiBullhorn } from "react-icons/ci";
 import { BsCash } from "react-icons/bs";
 
+// Assuming worldCurrencies is an array of currency codes
+const worldCurrencies = ["USD", "INR", "EUR", "GBP", "AUD"]; // Example, replace with actual data
+
 // Interfaces
 interface Paymant_Plans {
   planName: string;
@@ -28,23 +31,16 @@ interface Offer_Details {
   offerSlogan: string;
   discountPercentage: number;
   offerSeatsAvailable: number;
-  offerValidity: Date;
+  offerValidity: Date | string;
 }
 
-interface OfflineCoursePricingAndOffer {
+interface Course_Pricing_AndOffer {
   currency: string;
-  courseFeeStructure: number;
+  basePrice: number;
   paymentPlans: Paymant_Plans[];
   isCourseOnOffer: boolean;
   offerDetail?: Offer_Details;
-}
-
-interface Pricing_And_Offer_Error {
-  courseFeeStructure: string;
-  currency: string;
-  isCourseOnOffer: string;
-  offerDetail: string;
-  paymentPlans: string;
+  termsAndCondition: string[];
 }
 
 interface Offer_Error {
@@ -62,611 +58,691 @@ interface PaymentPlanError {
   planName: string;
 }
 
-interface PricingAndOfferProps {
-  pricingAndOffers: OfflineCoursePricingAndOffer;
-  pricingAndOffersErrors: Pricing_And_Offer_Error;
-  newPaymentPlan: Paymant_Plans;
-  paymentPlanError: PaymentPlanError;
-  offerDetails: Offer_Details;
+interface Pricing_And_Offer_Error {
+  basePrice: string;
+  currency: string;
+  isCourseOnOffer: string;
+  offerDetail: string;
+  paymentPlans: string;
   offerError: Offer_Error;
-  worldCurrencies: string[];
-  onPricingAndOfferChange: (name: keyof OfflineCoursePricingAndOffer, value: any) => void;
-  onPaymentPlanChange: (name: keyof Paymant_Plans, value: any) => void;
-  onAddPaymentPlan: (plan: Paymant_Plans) => void;
-  onRemovePaymentPlan: (planName: string) => void;
-  onOfferDetailsChange: (name: keyof Offer_Details, value: any) => void;
-  onOfferValidityChange: (value: Date) => void;
+  termsAndCondition: string;
+}
+
+interface PricingAndOfferProps {
+  pricingAndOffer: Course_Pricing_AndOffer;
+  onPricingAndOfferChange: (name: keyof Course_Pricing_AndOffer, value: any) => void;
+  error: Pricing_And_Offer_Error;
+  courseType: string;
 }
 
 export function PricingAndOfferTab({
-  pricingAndOffers,
-  pricingAndOffersErrors,
-  newPaymentPlan,
-  paymentPlanError,
-  offerDetails,
-  offerError,
-  worldCurrencies,
+  pricingAndOffer,
   onPricingAndOfferChange,
-  onPaymentPlanChange,
-  onAddPaymentPlan,
-  onRemovePaymentPlan,
-  onOfferDetailsChange,
-  onOfferValidityChange,
+  error,
+  courseType,
 }: PricingAndOfferProps) {
-  // Handle pricing and offer changes
-  const handlePricingAndOffer = useCallback(
-    (name: keyof OfflineCoursePricingAndOffer, value: any) => {
-      const parsedValue =
-        name === "courseFeeStructure" ? parseInt(value) || 0 : value;
-      onPricingAndOfferChange(name, parsedValue);
-    },
-    [onPricingAndOfferChange]
+  const [singlePaymentPlan, setSinglePaymentPlan] = useState<Paymant_Plans>({
+    planName: "",
+    amount: 0,
+    duration: "",
+  });
+  const [paymentPlanError, setPaymentPlanError] = useState<PaymentPlanError>({
+    planName: "",
+    amount: "",
+    duration: "",
+  });
+  const [singleTermAndCondition, setSingleTermAndCondition] = useState<string>("");
+  const [offerDetails, setOfferDetails] = useState<Offer_Details>(
+    pricingAndOffer.offerDetail || {
+      offerCode: "",
+      offerDescription: "",
+      offerSlogan: "",
+      discountPercentage: 0,
+      offerSeatsAvailable: 0,
+      offerValidity: "",
+    }
   );
 
-  // Handle payment plan input changes
-  const handlePaymentPlan = useCallback(
-    (name: keyof Paymant_Plans, value: any) => {
-      const parsedValue = name === "amount" ? parseInt(value) || 0 : value;
-      onPaymentPlanChange(name, parsedValue);
-    },
-    [onPaymentPlanChange]
-  );
+  const handlePaymentPlan = useCallback((name: keyof Paymant_Plans, value: any) => {
+    setSinglePaymentPlan((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setPaymentPlanError((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+  }, []);
 
-  // Handle adding payment plan
+  const handleAddOffer = useCallback((name: keyof Offer_Details, value: any) => {
+    setOfferDetails((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    onPricingAndOfferChange("offerDetail", {
+      ...offerDetails,
+      [name]: value,
+    });
+  }, [offerDetails, onPricingAndOfferChange]);
+
   const handleAddPaymentPlan = useCallback(() => {
-    onAddPaymentPlan(newPaymentPlan);
-  }, [newPaymentPlan, onAddPaymentPlan]);
+    const errors: PaymentPlanError = {
+      planName: "",
+      amount: "",
+      duration: "",
+    };
+    let hasError = false;
 
-  // Handle offer details changes
-  const handleAddOffer = useCallback(
-    (name: keyof Offer_Details, value: any) => {
-      const parsedValue =
-        name === "discountPercentage" || name === "offerSeatsAvailable"
-          ? parseInt(value) || 0
-          : value;
-      onOfferDetailsChange(name, parsedValue);
+    if (!singlePaymentPlan.planName || singlePaymentPlan.planName.trim() === "") {
+      errors.planName = "Please enter a plan name";
+      hasError = true;
+    }
+    if (!singlePaymentPlan.amount || singlePaymentPlan.amount <= 0) {
+      errors.amount = "Please enter a valid amount greater than 0";
+      hasError = true;
+    }
+    if (!singlePaymentPlan.duration || singlePaymentPlan.duration.trim() === "") {
+      errors.duration = "Please enter a valid duration";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setPaymentPlanError(errors);
+      return;
+    }
+
+    const allPaymentPlans = [...pricingAndOffer.paymentPlans, singlePaymentPlan];
+    onPricingAndOfferChange("paymentPlans", allPaymentPlans);
+    setSinglePaymentPlan({
+      planName: "",
+      amount: 0,
+      duration: "",
+    });
+    setPaymentPlanError({ planName: "", amount: "", duration: "" });
+  }, [singlePaymentPlan, pricingAndOffer.paymentPlans, onPricingAndOfferChange]);
+
+  const handleRemovePaymentPlan = useCallback(
+    (index: number) => {
+      const updatedPlans = pricingAndOffer.paymentPlans.filter((_, i) => i !== index);
+      onPricingAndOfferChange("paymentPlans", updatedPlans);
     },
-    [onOfferDetailsChange]
+    [pricingAndOffer.paymentPlans, onPricingAndOfferChange]
   );
 
-  // Handle date change for offer validity
+  const handleAddTermsAndCondition = useCallback(() => {
+    if (!singleTermAndCondition || singleTermAndCondition.trim() === "") return;
+    const allTermsAndCondition = [...pricingAndOffer.termsAndCondition, singleTermAndCondition];
+    onPricingAndOfferChange("termsAndCondition", allTermsAndCondition);
+    setSingleTermAndCondition("");
+  }, [singleTermAndCondition, pricingAndOffer.termsAndCondition, onPricingAndOfferChange]);
+
+  const handleRemoveTermsAndCondition = useCallback(
+    (index: number) => {
+      const updatedTerms = pricingAndOffer.termsAndCondition.filter((_, i) => i !== index);
+      onPricingAndOfferChange("termsAndCondition", updatedTerms);
+    },
+    [pricingAndOffer.termsAndCondition, onPricingAndOfferChange]
+  );
+
   const handleDateChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const date = new Date(e.target.value);
-      if (!isNaN(date.getTime())) {
-        onOfferValidityChange(date);
-      }
+      const dateValue = e.target.value;
+      setOfferDetails((prev) => ({
+        ...prev,
+        offerValidity: dateValue,
+      }));
+      onPricingAndOfferChange("offerDetail", {
+        ...offerDetails,
+        offerValidity: dateValue,
+      });
     },
-    [onOfferValidityChange]
+    [offerDetails, onPricingAndOfferChange]
   );
 
   const PricingAndOffer = useMemo(
     () => (
-      <div className="space-y-6 min-w-[64rem]">
-        <h1 className="text-4xl font-bold text-orange-600 text-shadow-xl">
-          Course Pricing And Offers
+      <div className="space-y-6 min-w-[64rem] p-6">
+        <h1 className="text-3xl font-bold text-orange-600">
+          Course Pricing and Offers
         </h1>
         <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-1">
-            <label htmlFor="courseFeeStructure" className="text-orange-600 font-bold">
+          <div className="space-y-2">
+            <label htmlFor="courseFeeStructure" className="text-orange-600 font-semibold">
               Course Fee Structure
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <PiCashRegister className="h-5 w-5 text-stone-400" />
-              </div>
+              <PiCashRegister className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
               <input
                 id="courseFeeStructure"
-                name="courseFeeStructure"
+                name="basePrice"
                 type="number"
                 required
                 min="1"
-                value={pricingAndOffers.courseFeeStructure || ""}
-                onChange={(e) => handlePricingAndOffer("courseFeeStructure", e.target.value)}
-                className={`pl-10 outline-none w-full rounded-lg border ${pricingAndOffersErrors.courseFeeStructure
-                  ? "border-red-500"
-                  : pricingAndOffers.courseFeeStructure
+                value={pricingAndOffer.basePrice || ""}
+                onChange={(e) => onPricingAndOfferChange("basePrice", Number(e.target.value))}
+                className={`pl-10 w-full rounded-lg border ${
+                  error.basePrice
+                    ? "border-red-500"
+                    : pricingAndOffer.basePrice
                     ? "border-orange-500"
                     : "border-stone-300 dark:border-stone-700"
-                  } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                 placeholder="e.g., 5000"
-                aria-invalid={!!pricingAndOffersErrors.courseFeeStructure}
+                aria-invalid={!!error.basePrice}
                 aria-describedby="courseFeeStructure-error"
-                aria-required="true"
               />
             </div>
-            <div aria-live="polite">
-              {pricingAndOffersErrors.courseFeeStructure && (
-                <p
-                  id="courseFeeStructure-error"
-                  className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                >
-                  <PiWarning size={16} /> {pricingAndOffersErrors.courseFeeStructure}
-                </p>
-              )}
-            </div>
+            {error.basePrice && (
+              <p
+                id="courseFeeStructure-error"
+                className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+              >
+                <PiWarning size={16} /> {error.basePrice}
+              </p>
+            )}
           </div>
-          <div className="space-y-1">
-            <label htmlFor="currency" className="text-orange-600 font-bold">
+          <div className="space-y-2">
+            <label htmlFor="currency" className="text-orange-600 font-semibold">
               Select Currency Type
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <PiCurrencyInr className="h-5 w-5 text-stone-400" />
-              </div>
+              <PiCurrencyInr className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
               <select
                 id="currency"
                 name="currency"
                 required
-                value={pricingAndOffers.currency}
-                onChange={(e) => handlePricingAndOffer("currency", e.target.value)}
-                className={`pl-10 outline-none w-full rounded-lg border ${pricingAndOffersErrors.currency
-                  ? "border-red-500"
-                  : pricingAndOffers.currency
+                value={pricingAndOffer.currency}
+                onChange={(e) => onPricingAndOfferChange("currency", e.target.value)}
+                className={`pl-10 w-full rounded-lg border ${
+                  error.currency
+                    ? "border-red-500"
+                    : pricingAndOffer.currency
                     ? "border-orange-500"
                     : "border-stone-300 dark:border-stone-700"
-                  } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                aria-invalid={!!pricingAndOffersErrors.currency}
+                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                aria-invalid={!!error.currency}
                 aria-describedby="pricingCurrency-error"
-                aria-required="true"
               >
                 <option value="">Select Course Currency</option>
-                {worldCurrencies.map((option, index) => (
-                  <option key={index} value={option}>
+                {worldCurrencies.map((option) => (
+                  <option key={option} value={option}>
                     {option}
                   </option>
                 ))}
               </select>
             </div>
-            <div aria-live="polite">
-              {pricingAndOffersErrors.currency && (
-                <p
-                  id="pricingCurrency-error"
-                  className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                >
-                  <PiWarning size={16} /> {pricingAndOffersErrors.currency}
-                </p>
-              )}
-            </div>
+            {error.currency && (
+              <p
+                id="pricingCurrency-error"
+                className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+              >
+                <PiWarning size={16} /> {error.currency}
+              </p>
+            )}
           </div>
         </div>
-        <div className="space-y-1 w-full">
-          <h2 className="text-2xl mb-2 font-bold text-orange-600 text-shadow-xl">
-            Payment Plan
-          </h2>
-          <div className="flex flex-col space-y-2">
-            <div
-              className="grid grid-cols-7 items-end gap-4"
-              aria-invalid={!!pricingAndOffersErrors.paymentPlans}
-              aria-describedby="paymentPlans-error"
-              aria-required="true"
-            >
-              <div className="space-y-1 col-span-2">
-                <label htmlFor="planName" className="text-orange-600 font-bold">
-                  Plan Name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <PiListBullets className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    id="planName"
-                    name="planName"
-                    type="text"
-                    required
-                    value={newPaymentPlan.planName}
-                    onChange={(e) => handlePaymentPlan("planName", e.target.value)}
-                    className={`pl-10 outline-none w-full rounded-lg border ${paymentPlanError.planName
+
+        {/* Payment Plans */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-orange-600">Payment Plans</h2>
+          <div className="grid grid-cols-7 gap-4 items-end">
+            <div className="space-y-2 col-span-2">
+              <label htmlFor="planName" className="text-orange-600 font-semibold">
+                Plan Name
+              </label>
+              <div className="relative">
+                <PiListBullets className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                <input
+                  id="planName"
+                  name="planName"
+                  type="text"
+                  required
+                  value={singlePaymentPlan.planName}
+                  onChange={(e) => handlePaymentPlan("planName", e.target.value)}
+                  className={`pl-10 w-full rounded-lg border ${
+                    paymentPlanError.planName
                       ? "border-red-500"
-                      : newPaymentPlan.planName
-                        ? "border-orange-500"
-                        : "border-stone-300 dark:border-stone-700"
-                      } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                    placeholder="e.g., One Time Payment"
-                    maxLength={100}
-                    aria-invalid={!!paymentPlanError.planName}
-                    aria-describedby="planName-error"
-                    aria-required="true"
-                  />
-                </div>
-                <div aria-live="polite">
-                  {paymentPlanError.planName && (
-                    <p
-                      id="planName-error"
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <PiWarning size={16} /> {paymentPlanError.planName}
-                    </p>
-                  )}
-                </div>
+                      : singlePaymentPlan.planName
+                      ? "border-orange-500"
+                      : "border-stone-300 dark:border-stone-700"
+                  } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  placeholder="e.g., One Time Payment"
+                  maxLength={100}
+                  aria-invalid={!!paymentPlanError.planName}
+                  aria-describedby="planName-error"
+                />
               </div>
-              <div className="space-y-1 col-span-2">
-                <label htmlFor="amount" className="text-orange-600 font-bold">
-                  Amount
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <BsCash className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    required
-                    min="1"
-                    value={newPaymentPlan.amount || ""}
-                    onChange={(e) => handlePaymentPlan("amount", e.target.value)}
-                    className={`pl-10 outline-none w-full rounded-lg border ${paymentPlanError.amount
-                      ? "border-red-500"
-                      : newPaymentPlan.amount
-                        ? "border-orange-500"
-                        : "border-stone-300 dark:border-stone-700"
-                      } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                    placeholder="e.g., 5000"
-                    aria-invalid={!!paymentPlanError.amount}
-                    aria-describedby="amount-error"
-                    aria-required="true"
-                  />
-                </div>
-                <div aria-live="polite">
-                  {paymentPlanError.amount && (
-                    <p
-                      id="amount-error"
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <PiWarning size={16} /> {paymentPlanError.amount}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1 col-span-2">
-                <label htmlFor="duration" className="text-orange-600 font-bold">
-                  Duration
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <PiClock className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    id="duration"
-                    name="duration"
-                    type="text"
-                    required
-                    value={newPaymentPlan.duration}
-                    onChange={(e) => handlePaymentPlan("duration", e.target.value)}
-                    className={`pl-10 outline-none w-full rounded-lg border ${paymentPlanError.duration
-                      ? "border-red-500"
-                      : newPaymentPlan.duration
-                        ? "border-orange-500"
-                        : "border-stone-300 dark:border-stone-700"
-                      } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                    placeholder="e.g., 3 months"
-                    maxLength={100}
-                    aria-invalid={!!paymentPlanError.duration}
-                    aria-describedby="duration-error"
-                    aria-required="true"
-                  />
-                </div>
-                <div aria-live="polite">
-                  {paymentPlanError.duration && (
-                    <p
-                      id="duration-error"
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <PiWarning size={16} /> {paymentPlanError.duration}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddPaymentPlan}
-                className="p-2 h-10 px-6 font-bold rounded cursor-pointer text-stone-100 dark:text-stone-900 flex items-center justify-between bg-orange-600"
-              >
-                <PiPlus /> Add Plan
-              </button>
-            </div>
-            <div aria-live="polite">
-              {pricingAndOffersErrors.paymentPlans && (
+              {paymentPlanError.planName && (
                 <p
-                  id="paymentPlans-error"
-                  className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                  id="planName-error"
+                  className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
                 >
-                  <PiWarning size={16} /> {pricingAndOffersErrors.paymentPlans}
+                  <PiWarning size={16} /> {paymentPlanError.planName}
                 </p>
               )}
             </div>
+            <div className="space-y-2 col-span-2">
+              <label htmlFor="amount" className="text-orange-600 font-semibold">
+                Amount
+              </label>
+              <div className="relative">
+                <BsCash className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                <input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  required
+                  min="1"
+                  value={singlePaymentPlan.amount || ""}
+                  onChange={(e) => handlePaymentPlan("amount", Number(e.target.value))}
+                  className={`pl-10 w-full rounded-lg border ${
+                    paymentPlanError.amount
+                      ? "border-red-500"
+                      : singlePaymentPlan.amount
+                      ? "border-orange-500"
+                      : "border-stone-300 dark:border-stone-700"
+                  } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  placeholder="e.g., 5000"
+                  aria-invalid={!!paymentPlanError.amount}
+                  aria-describedby="amount-error"
+                />
+              </div>
+              {paymentPlanError.amount && (
+                <p
+                  id="amount-error"
+                  className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                >
+                  <PiWarning size={16} /> {paymentPlanError.amount}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2 col-span-2">
+              <label htmlFor="duration" className="text-orange-600 font-semibold">
+                Duration
+              </label>
+              <div className="relative">
+                <PiClock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                <input
+                  id="duration"
+                  name="duration"
+                  type="text"
+                  required
+                  value={singlePaymentPlan.duration}
+                  onChange={(e) => handlePaymentPlan("duration", e.target.value)}
+                  className={`pl-10 w-full rounded-lg border ${
+                    paymentPlanError.duration
+                      ? "border-red-500"
+                      : singlePaymentPlan.duration
+                      ? "border-orange-500"
+                      : "border-stone-300 dark:border-stone-700"
+                  } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  placeholder="e.g., 3 months"
+                  maxLength={100}
+                  aria-invalid={!!paymentPlanError.duration}
+                  aria-describedby="duration-error"
+                />
+              </div>
+              {paymentPlanError.duration && (
+                <p
+                  id="duration-error"
+                  className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                >
+                  <PiWarning size={16} /> {paymentPlanError.duration}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleAddPaymentPlan}
+              className="flex items-center justify-center gap-2 h-10 px-6 font-semibold rounded bg-orange-600 text-white hover:bg-orange-700 transition-colors"
+            >
+              <PiPlus /> Add Plan
+            </button>
           </div>
-            <h1 className="mb-2 text-xl font-bold text-orange-600 p-2">Your Payment Plans :</h1>
-          <div className="flex gap-4">
-            {pricingAndOffers.paymentPlans.map((plan, index) => (
+          {error.paymentPlans && (
+            <p
+              id="paymentPlans-error"
+              className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+            >
+              <PiWarning size={16} /> {error.paymentPlans}
+            </p>
+          )}
+          <h3 className="text-lg font-semibold text-orange-600 mt-4">Your Payment Plans:</h3>
+          <div className="flex flex-wrap gap-4">
+            {pricingAndOffer.paymentPlans.map((plan, index) => (
               <div
-                className="border-2 rounded p-3 relative shadow shadow-orange-600 text-orange-600 bg-stone-100/50 dark:bg-stone-800 w-fit border-orange-600 p-2 mb-2"
                 key={index}
+                className="relative border-2 rounded-lg p-3 shadow-md bg-stone-100 dark:bg-stone-800 border-orange-600 text-orange-600 w-64"
               >
-                <span className="flex gap-2 items-center">
-                  Name: <p>{plan.planName}</p>
-                </span>
-                <span className="flex gap-2 items-center">
-                  Amount: <p>{plan.amount}</p>
-                </span>
-                <span className="flex gap-2 items-center">
-                  Duration: <p>{plan.duration}</p>
-                </span>
+                <div className="space-y-1">
+                  <p className="flex gap-2 items-center">
+                    <span className="font-medium">Name:</span> {plan.planName}
+                  </p>
+                  <p className="flex gap-2 items-center">
+                    <span className="font-medium">Amount:</span> {plan.amount}
+                  </p>
+                  <p className="flex gap-2 items-center">
+                    <span className="font-medium">Duration:</span> {plan.duration}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => onRemovePaymentPlan(plan.planName)}
-                  className="text-orange-600 absolute -top-3 -right-3 rounded-full bg-stone-100 p-2 border border-orange-600 hover:text-red-800"
+                  onClick={() => handleRemovePaymentPlan(index)}
+                  className="absolute -top-3 -right-3 rounded-full bg-stone-100 dark:bg-stone-800 p-2 border border-orange-600 text-orange-600 hover:text-red-600 hover:border-red-600 transition-colors"
+                  aria-label={`Remove ${plan.planName} plan`}
                 >
-                  <PiTrash />
+                  <PiTrash size={16} />
                 </button>
               </div>
             ))}
           </div>
-          <div className="flex my-6 gap-4">
-            <input
-              type="checkbox"
-              onChange={(e) => handlePricingAndOffer("isCourseOnOffer", e.target.checked)}
-              name="isCourseOnOffer"
-              id="isCourseOnOffer"
-              className="accent-orange-600 h-5 w-5"
-              checked={pricingAndOffers.isCourseOnOffer}
-            />
-            <label className="font-bold text-orange-600" htmlFor="isCourseOnOffer">
-              Is Course On Offer
-            </label>
-          </div>
-          {pricingAndOffers.isCourseOnOffer && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label htmlFor="discountPercentage" className="text-orange-600 font-bold">
-                    Discount In Percentage
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <PiPercent className="h-5 w-5 text-stone-400" />
-                    </div>
-                    <input
-                      id="discountPercentage"
-                      name="discountPercentage"
-                      type="number"
-                      required
-                      min="1"
-                      max="100"
-                      value={offerDetails.discountPercentage || ""}
-                      onChange={(e) => handleAddOffer("discountPercentage", e.target.value)}
-                      className={`pl-10 outline-none w-full rounded-lg border ${offerError.discountPercentage
-                        ? "border-red-500"
-                        : offerDetails.discountPercentage
-                          ? "border-orange-500"
-                          : "border-stone-300 dark:border-stone-700"
-                        } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                      placeholder="e.g., 20"
-                      aria-invalid={!!offerError.discountPercentage}
-                      aria-describedby="discountPercentage-error"
-                      aria-required="true"
-                    />
-                  </div>
-                  <div aria-live="polite">
-                    {offerError.discountPercentage && (
-                      <p
-                        id="discountPercentage-error"
-                        className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                      >
-                        <PiWarning size={16} /> {offerError.discountPercentage}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="offerCode" className="text-orange-600 font-bold">
-                    Offer Code
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <PiCode className="h-5 w-5 text-stone-400" />
-                    </div>
-                    <input
-                      id="offerCode"
-                      name="offerCode"
-                      type="text"
-                      required
-                      value={offerDetails.offerCode}
-                      onChange={(e) => handleAddOffer("offerCode", e.target.value)}
-                      className={`pl-10 outline-none w-full rounded-lg border ${offerError.offerCode
-                        ? "border-red-500"
-                        : offerDetails.offerCode
-                          ? "border-orange-500"
-                          : "border-stone-300 dark:border-stone-700"
-                        } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                      placeholder="e.g., SAVE20"
-                      maxLength={50}
-                      aria-invalid={!!offerError.offerCode}
-                      aria-describedby="offerCode-error"
-                      aria-required="true"
-                    />
-                  </div>
-                  <div aria-live="polite">
-                    {offerError.offerCode && (
-                      <p
-                        id="offerCode-error"
-                        className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                      >
-                        <PiWarning size={16} /> {offerError.offerCode}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="offerSeatsAvailable" className="text-orange-600 font-bold">
-                    Offer Available Seats
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <PiSeat className="h-5 w-5 text-stone-400" />
-                    </div>
-                    <input
-                      id="offerSeatsAvailable"
-                      name="offerSeatsAvailable"
-                      type="number"
-                      required
-                      min="1"
-                      value={offerDetails.offerSeatsAvailable || ""}
-                      onChange={(e) => handleAddOffer("offerSeatsAvailable", e.target.value)}
-                      className={`pl-10 outline-none w-full rounded-lg border ${offerError.offerSeatsAvailable
-                        ? "border-red-500"
-                        : offerDetails.offerSeatsAvailable
-                          ? "border-orange-500"
-                          : "border-stone-300 dark:border-stone-700"
-                        } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                      placeholder="e.g., 50"
-                      aria-invalid={!!offerError.offerSeatsAvailable}
-                      aria-describedby="offerSeatsAvailable-error"
-                      aria-required="true"
-                    />
-                  </div>
-                  <div aria-live="polite">
-                    {offerError.offerSeatsAvailable && (
-                      <p
-                        id="offerSeatsAvailable-error"
-                        className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                      >
-                        <PiWarning size={16} /> {offerError.offerSeatsAvailable}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="offerValidity" className="text-orange-600 font-bold">
-                    Offer Validity
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <PiCalendar className="h-5 w-5 text-stone-400" />
-                    </div>
-                    <input
-                      id="offerValidity"
-                      name="offerValidity"
-                      type="date"
-                      required
-                      value={offerDetails.offerValidity}
-                      onChange={handleDateChange}
-                      className={`pl-10 outline-none w-full rounded-lg border ${offerError.offerValidity
-                        ? "border-red-500"
-                        : offerDetails.offerValidity
-                          ? "border-orange-500"
-                          : "border-stone-300 dark:border-stone-700"
-                        } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                      aria-invalid={!!offerError.offerValidity}
-                      aria-describedby="offerValidity-error"
-                      aria-required="true"
-                    />
-                  </div>
-                  <div aria-live="polite">
-                    {offerError.offerValidity && (
-                      <p
-                        id="offerValidity-error"
-                        className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                      >
-                        <PiWarning size={16} /> {offerError.offerValidity}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-1 mt-4">
-                <label htmlFor="offerSlogan" className="text-orange-600 font-bold">
-                  Offer Slogan
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <CiBullhorn className="h-5 w-5 text-stone-400" />
-                  </div>
-                  <input
-                    id="offerSlogan"
-                    name="offerSlogan"
-                    type="text"
-                    required
-                    value={offerDetails.offerSlogan}
-                    onChange={(e) => handleAddOffer("offerSlogan", e.target.value)}
-                    className={`pl-10 outline-none w-full rounded-lg border ${offerError.offerSlogan
-                      ? "border-red-500"
-                      : offerDetails.offerSlogan
-                        ? "border-orange-500"
-                        : "border-stone-300 dark:border-stone-700"
-                      } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                    placeholder="e.g., Save Big Today!"
-                    maxLength={100}
-                    aria-invalid={!!offerError.offerSlogan}
-                    aria-describedby="offerSlogan-error"
-                    aria-required="true"
-                  />
-                </div>
-                <div aria-live="polite">
-                  {offerError.offerSlogan && (
-                    <p
-                      id="offerSlogan-error"
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <PiWarning size={16} /> {offerError.offerSlogan}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1 mt-4">
-                <label htmlFor="offerDescription" className="text-orange-600 font-bold">
-                  Course Offer Description
-                </label>
+        </div>
+
+        {/* Terms and Conditions */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-orange-600">Terms and Conditions</h2>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1 space-y-2">
+              <label htmlFor="termAndCondition" className="text-orange-600 font-semibold">
+                Add Term or Condition
+              </label>
+              <div className="relative">
+                <PiListBullets className="absolute left-3 top-3 h-5 w-5 text-stone-400" />
                 <textarea
-                  id="offerDescription"
-                  name="offerDescription"
-                  value={offerDetails.offerDescription}
-                  onChange={(e) => handleAddOffer("offerDescription", e.target.value)}
-                  className={`w-full rounded-lg border ${offerError.offerDescription
-                    ? "border-red-500"
-                    : offerDetails.offerDescription
-                      ? "border-orange-500"
-                      : "border-stone-300 dark:border-stone-700"
-                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent min-h-[100px]`}
-                  placeholder="Describe the offer (e.g., limited time discount, special benefits)"
-                  maxLength={1000}
-                  aria-invalid={!!offerError.offerDescription}
-                  aria-describedby="offerDescription-error"
-                  aria-required="true"
+                  id="termAndCondition"
+                  value={singleTermAndCondition}
+                  onChange={(e) => setSingleTermAndCondition(e.target.value)}
+                  className="pl-10 w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent min-h-[80px]"
+                  placeholder="e.g., Non-refundable after 7 days"
+                  maxLength={500}
                 />
-                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                  {offerDetails.offerDescription.length}/1000 characters
-                </p>
-                <div aria-live="polite">
-                  {offerError.offerDescription && (
-                    <p
-                      id="offerDescription-error"
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <PiWarning size={16} /> {offerError.offerDescription}
-                    </p>
-                  )}
-                </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={handleAddTermsAndCondition}
+              className="flex items-center justify-center gap-2 h-10 px-6 font-semibold rounded bg-orange-600 text-white hover:bg-orange-700 transition-colors"
+            >
+              <PiPlus /> Add Term
+            </button>
+          </div>
+          {error.termsAndCondition && (
+            <p
+              id="termsAndCondition-error"
+              className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+            >
+              <PiWarning size={16} /> {error.termsAndCondition}
+            </p>
           )}
+          <h3 className="text-lg font-semibold text-orange-600 mt-4">Your Terms and Conditions:</h3>
+          <div className="flex flex-wrap gap-4">
+            {pricingAndOffer.termsAndCondition.map((term, index) => (
+              <div
+                key={index}
+                className="relative border-2 rounded-lg p-3 shadow-md bg-stone-100 dark:bg-stone-800 border-orange-600 text-orange-600 w-64"
+              >
+                <p>{term}</p>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTermsAndCondition(index)}
+                  className="absolute -top-3 -right-3 rounded-full bg-stone-100 dark:bg-stone-800 p-2 border border-orange-600 text-orange-600 hover:text-red-600 hover:border-red-600 transition-colors"
+                  aria-label={`Remove term: ${term}`}
+                >
+                  <PiTrash size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Offer Toggle */}
+        <div className="flex items-center gap-4">
+          <input
+            type="checkbox"
+            id="isCourseOnOffer"
+            name="isCourseOnOffer"
+            checked={pricingAndOffer.isCourseOnOffer}
+            onChange={(e) => onPricingAndOfferChange("isCourseOnOffer", e.target.checked)}
+            className="h-5 w-5 accent-orange-600 focus:ring-orange-500"
+            aria-label="Toggle course offer"
+          />
+          <label htmlFor="isCourseOnOffer" className="text-orange-600 font-semibold">
+            Is Course On Offer
+          </label>
+        </div>
+
+        {/* Offer Details */}
+        {pricingAndOffer.isCourseOnOffer && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-orange-600">Offer Details</h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="discountPercentage" className="text-orange-600 font-semibold">
+                  Discount Percentage
+                </label>
+                <div className="relative">
+                  <PiPercent className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                  <input
+                    id="discountPercentage"
+                    name="discountPercentage"
+                    type="number"
+                    required
+                    min="1"
+                    max="100"
+                    value={offerDetails.discountPercentage || ""}
+                    onChange={(e) => handleAddOffer("discountPercentage", Number(e.target.value))}
+                    className={`pl-10 w-full rounded-lg border ${
+                      error.offerError.discountPercentage
+                        ? "border-red-500"
+                        : offerDetails.discountPercentage
+                        ? "border-orange-500"
+                        : "border-stone-300 dark:border-stone-700"
+                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                    placeholder="e.g., 20"
+                    aria-invalid={!!error.offerError.discountPercentage}
+                    aria-describedby="discountPercentage-error"
+                  />
+                </div>
+                {error.offerError.discountPercentage && (
+                  <p
+                    id="discountPercentage-error"
+                    className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                  >
+                    <PiWarning size={16} /> {error.offerError.discountPercentage}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="offerCode" className="text-orange-600 font-semibold">
+                  Offer Code
+                </label>
+                <div className="relative">
+                  <PiCode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                  <input
+                    id="offerCode"
+                    name="offerCode"
+                    type="text"
+                    required
+                    value={offerDetails.offerCode}
+                    onChange={(e) => handleAddOffer("offerCode", e.target.value.toUpperCase())}
+                    className={`pl-10 w-full rounded-lg border ${
+                      error.offerError.offerCode
+                        ? "border-red-500"
+                        : offerDetails.offerCode
+                        ? "border-orange-500"
+                        : "border-stone-300 dark:border-stone-700"
+                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                    placeholder="e.g., SAVE20"
+                    maxLength={20}
+                    aria-invalid={!!error.offerError.offerCode}
+                    aria-describedby="offerCode-error"
+                  />
+                </div>
+                {error.offerError.offerCode && (
+                  <p
+                    id="offerCode-error"
+                    className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                  >
+                    <PiWarning size={16} /> {error.offerError.offerCode}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="offerSeatsAvailable" className="text-orange-600 font-semibold">
+                  Offer Available Seats
+                </label>
+                <div className="relative">
+                  <PiSeat className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                  <input
+                    id="offerSeatsAvailable"
+                    name="offerSeatsAvailable"
+                    type="number"
+                    required
+                    min="1"
+                    value={offerDetails.offerSeatsAvailable || ""}
+                    onChange={(e) => handleAddOffer("offerSeatsAvailable", Number(e.target.value))}
+                    className={`pl-10 w-full rounded-lg border ${
+                      error.offerError.offerSeatsAvailable
+                        ? "border-red-500"
+                        : offerDetails.offerSeatsAvailable
+                        ? "border-orange-500"
+                        : "border-stone-300 dark:border-stone-700"
+                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                    placeholder="e.g., 50"
+                    aria-invalid={!!error.offerError.offerSeatsAvailable}
+                    aria-describedby="offerSeatsAvailable-error"
+                  />
+                </div>
+                {error.offerError.offerSeatsAvailable && (
+                  <p
+                    id="offerSeatsAvailable-error"
+                    className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                  >
+                    <PiWarning size={16} /> {error.offerError.offerSeatsAvailable}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="offerValidity" className="text-orange-600 font-semibold">
+                  Offer Validity
+                </label>
+                <div className="relative">
+                  <PiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                  <input
+                    id="offerValidity"
+                    name="offerValidity"
+                    type="date"
+                    required
+                    value={
+                      offerDetails.offerValidity instanceof Date
+                        ? offerDetails.offerValidity.toISOString().split("T")[0]
+                        : offerDetails.offerValidity
+                    }
+                    onChange={handleDateChange}
+                    className={`pl-10 w-full rounded-lg border ${
+                      error.offerError.offerValidity
+                        ? "border-red-500"
+                        : offerDetails.offerValidity
+                        ? "border-orange-500"
+                        : "border-stone-300 dark:border-stone-700"
+                    } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                    aria-invalid={!!error.offerError.offerValidity}
+                    aria-describedby="offerValidity-error"
+                  />
+                </div>
+                {error.offerError.offerValidity && (
+                  <p
+                    id="offerValidity-error"
+                    className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                  >
+                    <PiWarning size={16} /> {error.offerError.offerValidity}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="offerSlogan" className="text-orange-600 font-semibold">
+                Offer Slogan
+              </label>
+              <div className="relative">
+                <CiBullhorn className="absolute left-3 top-3 h-5 w-5 text-stone-400" />
+                <input
+                  id="offerSlogan"
+                  name="offerSlogan"
+                  type="text"
+                  required
+                  value={offerDetails.offerSlogan}
+                  onChange={(e) => handleAddOffer("offerSlogan", e.target.value)}
+                  className={`pl-10 w-full rounded-lg border ${
+                    error.offerError.offerSlogan
+                      ? "border-red-500"
+                      : offerDetails.offerSlogan
+                      ? "border-orange-500"
+                      : "border-stone-300 dark:border-stone-700"
+                  } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  placeholder="e.g., Save Big Today!"
+                  maxLength={100}
+                  aria-invalid={!!error.offerError.offerSlogan}
+                  aria-describedby="offerSlogan-error"
+                />
+              </div>
+              {error.offerError.offerSlogan && (
+                <p
+                  id="offerSlogan-error"
+                  className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                >
+                  <PiWarning size={16} /> {error.offerError.offerSlogan}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="offerDescription" className="text-orange-600 font-semibold">
+                Offer Description
+              </label>
+              <textarea
+                id="offerDescription"
+                name="offerDescription"
+                value={offerDetails.offerDescription}
+                onChange={(e) => handleAddOffer("offerDescription", e.target.value)}
+                className={`w-full rounded-lg border ${
+                  error.offerError.offerDescription
+                    ? "border-red-500"
+                    : offerDetails.offerDescription
+                    ? "border-orange-500"
+                    : "border-stone-300 dark:border-stone-700"
+                } bg-stone-100 dark:bg-stone-800 py-2 px-3 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent min-h-[100px]`}
+                placeholder="Describe the offer (e.g., limited time discount, special benefits)"
+                maxLength={1000}
+                aria-invalid={!!error.offerError.offerDescription}
+                aria-describedby="offerDescription-error"
+              />
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {offerDetails.offerDescription.length}/1000 characters
+              </p>
+              {error.offerError.offerDescription && (
+                <p
+                  id="offerDescription-error"
+                  className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                >
+                  <PiWarning size={16} /> {error.offerError.offerDescription}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     ),
     [
-      pricingAndOffers,
-      pricingAndOffersErrors,
-      newPaymentPlan,
+      pricingAndOffer,
+      error,
+      singlePaymentPlan,
       paymentPlanError,
       offerDetails,
-      offerError,
-      worldCurrencies,
-      handlePricingAndOffer,
-      handlePaymentPlan,
+      singleTermAndCondition,
       handleAddPaymentPlan,
-      onRemovePaymentPlan,
-      handleAddOffer,
+      handleRemovePaymentPlan,
+      handleAddTermsAndCondition,
+      handleRemoveTermsAndCondition,
       handleDateChange,
     ]
   );
